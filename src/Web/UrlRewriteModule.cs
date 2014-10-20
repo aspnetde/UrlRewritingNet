@@ -1,42 +1,8 @@
-/* UrlRewritingNet.UrlRewrite
- * Version 2.0
- * 
- * This Library is Copyright 2006 by Albert Weinert and Thomas Bandt.
- * 
- * http://der-albert.com, http://blog.thomasbandt.de
- * 
- * This Library is provided as is. No warrenty is expressed or implied.
- * 
- * You can use these Library in free and commercial projects without a fee.
- * 
- * No charge should be made for providing these Library to a third party.
- * 
- * It is allowed to modify the source to fit your special needs. If you 
- * made improvements you should make it public available by sending us 
- * your modifications or publish it on your site. If you publish it on 
- * your own site you have to notify us. This is not a commitment that we 
- * include your modifications. 
- * 
- * This Copyright notice must be included in the modified source code.
- * 
- * You are not allowed to build a commercial rewrite engine based on 
- * this code.
- * 
- * Based on http://weblogs.asp.net/fmarguerie/archive/2004/11/18/265719.aspx
- * 
- * For further informations see: http://www.urlrewriting.net/
- */
-
 using System;
-using System.Collections.Generic;
 using System.Text;
 using System.Web;
-using System.Configuration;
 using System.IO;
-using System.Text.RegularExpressions;
 using System.Web.UI;
-using System.Security;
-using System.Security.Permissions;
 using System.Threading;
 using UrlRewritingNet.Configuration;
 
@@ -45,7 +11,6 @@ namespace UrlRewritingNet.Web
 
     public class UrlRewriteModule : IHttpModule
     {
-
         const string ItemsVirtualUrl = "UrlRewritingNet.UrlRewriter.VirtualUrl";
         const string ItemsClientQueryString = "UrlRewritingNet.UrlRewriter.ClientQueryString";
         const string ItemsRewriteUrlParameter = "UrlRewritingNet.UrlRewriter.RewriteUrlParameter";
@@ -53,25 +18,25 @@ namespace UrlRewritingNet.Web
 
         public const string PhysicalPath = "UrlRewritingNet.UrlRewriter.CachedPathAfterRewrite";
 
-        private bool rewriteOnlyVirtualUrls = false;
+        private bool rewriteOnlyVirtualUrls;
         private string _contextItemsPrefix = string.Empty;
 
         private RewriteRuleCollection _rewrites;
-        private ReaderWriterLock lockRewrites = new ReaderWriterLock();
-        private ReaderWriterLock lockRedirects = new ReaderWriterLock();
+        private readonly ReaderWriterLock _lockRewrites = new ReaderWriterLock();
+        private readonly ReaderWriterLock _lockRedirects = new ReaderWriterLock();
 
         internal RewriteRuleCollection Rewrites
         {
             get
             {
-                if (_rewrites == null)
+                if (_rewrites != null) 
+                    return _rewrites;
+
+                lock (this)
                 {
-                    lock (this)
+                    if (_rewrites == null)
                     {
-                        if (_rewrites == null)
-                        {
-                            _rewrites = new RewriteRuleCollection();
-                        }
+                        _rewrites = new RewriteRuleCollection();
                     }
                 }
                 return _rewrites;
@@ -98,16 +63,14 @@ namespace UrlRewritingNet.Web
             }
         }
 
-
-
-        private UrlHelper urlHelper;
+        private readonly UrlHelper _urlHelper;
 
         public UrlRewriteModule()
         {
-            this.urlHelper = new UrlHelper();
+            _urlHelper = new UrlHelper();
         }
 
-        private string JoinUrlParameter(string destinationUrl, string requestQuerystring)
+        private static string JoinUrlParameter(string destinationUrl, string requestQuerystring)
         {
             int pos = destinationUrl.IndexOf('?');
             if (requestQuerystring.Length > 0)
@@ -123,6 +86,7 @@ namespace UrlRewritingNet.Web
             }
             return destinationUrl;
         }
+
         /// <summary>
         /// Redirects the URL.
         /// </summary>
@@ -130,12 +94,12 @@ namespace UrlRewritingNet.Web
         /// <returns>true if redirected, false if not</returns>
         private bool RedirectUrl(HttpApplication app)
         {
-            string requestUrl;
             bool redirected = false;
             // First, checking for Redirects
-            lockRedirects.AcquireReaderLock(0);
+            _lockRedirects.AcquireReaderLock(0);
             foreach (RewriteRule rewrite in Redirects)
             {
+                string requestUrl;
                 if (rewrite.Redirect == RedirectOption.Domain)
                     requestUrl = app.Request.Url.AbsoluteUri;
                 else
@@ -156,11 +120,11 @@ namespace UrlRewritingNet.Web
                     string destinationUrl = rewrite.RewriteUrl(urlForRewrite);
 
                     if (includeQueryStringForRewrite)
-                        destinationUrl = urlHelper.HandleRootOperator(destinationUrl);
+                        destinationUrl = _urlHelper.HandleRootOperator(destinationUrl);
                     else
-                        destinationUrl = JoinUrlParameter(urlHelper.HandleRootOperator(destinationUrl), requestQuerystring);
+                        destinationUrl = JoinUrlParameter(_urlHelper.HandleRootOperator(destinationUrl), requestQuerystring);
 
-                    StringBuilder sb = new StringBuilder();
+                    var sb = new StringBuilder();
 
                     if (rewrite.Redirect == RedirectOption.Domain)
                     {
@@ -188,7 +152,7 @@ namespace UrlRewritingNet.Web
                     break;
                 }
             }
-            lockRedirects.ReleaseReaderLock();
+            _lockRedirects.ReleaseReaderLock();
             return redirected;
         }
 
@@ -201,7 +165,7 @@ namespace UrlRewritingNet.Web
             string requestUrl;
             bool rewritten = false;
             // Do the Rewrites
-            lockRewrites.AcquireReaderLock(0);
+            _lockRewrites.AcquireReaderLock(0);
             foreach (RewriteRule rewrite in Rewrites)
             {
                 if ((rewrite.Rewrite & RewriteOption.Domain) != 0)
@@ -231,7 +195,7 @@ namespace UrlRewritingNet.Web
                         int slashPos = requestUrl.IndexOf("://");
                         if (slashPos > 0)
                         {
-                            slashPos = requestUrl.IndexOf("/", slashPos + 3);
+                            slashPos = requestUrl.IndexOf("/", slashPos + 3, StringComparison.Ordinal);
                             if (slashPos > 0)
                             {
                                 app.Context.Items[ItemsVirtualUrl] = requestUrl.Substring(slashPos);
@@ -248,9 +212,9 @@ namespace UrlRewritingNet.Web
 
 
                     if (includeQueryStringForRewrite)
-                        destinationUrl = urlHelper.HandleRootOperator(destinationUrl);
+                        destinationUrl = _urlHelper.HandleRootOperator(destinationUrl);
                     else
-                        destinationUrl = JoinUrlParameter(urlHelper.HandleRootOperator(destinationUrl), requestQuerystring);
+                        destinationUrl = JoinUrlParameter(_urlHelper.HandleRootOperator(destinationUrl), requestQuerystring);
                     // Save original querystring, url and rewrite-parameters for OnPagePreInit()
 
                     app.Response.StatusCode = 200;
@@ -259,9 +223,10 @@ namespace UrlRewritingNet.Web
                     break;
                 }
             }
-            lockRewrites.ReleaseReaderLock();
+            _lockRewrites.ReleaseReaderLock();
             return rewritten;
         }
+
         /// <summary>
         /// Called when [begin request].
         /// </summary>
@@ -307,19 +272,15 @@ namespace UrlRewritingNet.Web
             }
         }
 
-
-        #region IHttpModule members
-
-        public void Init(System.Web.HttpApplication context)
+        public void Init(HttpApplication context)
         {
-
             rewriteOnlyVirtualUrls = UrlRewriting.Configuration.RewriteOnlyVirtualUrls;
             _contextItemsPrefix = UrlRewriting.Configuration.ContextItemsPrefix;
 
             // Copy Settings for easier and faster Accesss during requests
             foreach (RewriteSettings rewriteSettings in UrlRewriting.Configuration.Rewrites)
             {
-                RewriteRule rewrite = null;
+                RewriteRule rewrite;
                 string providerName = rewriteSettings.Provider;
                 if (string.IsNullOrEmpty(providerName))
                 {
@@ -329,12 +290,14 @@ namespace UrlRewritingNet.Web
                 {
                     rewrite = UrlRewriting.CreateRewriteRule(providerName);
                 }
+
                 rewrite.Initialize(rewriteSettings);
                 AddRewriteRuleInternal(rewrite);
             }
-            context.BeginRequest += new EventHandler(OnBeginRequest);
-            context.PreRequestHandlerExecute += new EventHandler(OnAppPreRequestHandlerExecute);
-            context.PostRequestHandlerExecute += new EventHandler(OnAppPostRequestHandlerExecute);
+
+            context.BeginRequest += OnBeginRequest;
+            context.PreRequestHandlerExecute += OnAppPreRequestHandlerExecute;
+            context.PostRequestHandlerExecute += OnAppPostRequestHandlerExecute;
         }
 
         internal void AddRewriteRuleInternal(RewriteRule rewriteRule)
@@ -342,41 +305,42 @@ namespace UrlRewritingNet.Web
 
             if (rewriteRule.Redirect == RedirectOption.None)
             {
-                lockRewrites.AcquireWriterLock(0);
+                _lockRewrites.AcquireWriterLock(0);
                 Rewrites.Add(rewriteRule);
-                lockRewrites.ReleaseWriterLock();
+                _lockRewrites.ReleaseWriterLock();
             }
             else
             {
-                lockRedirects.AcquireWriterLock(0);
+                _lockRedirects.AcquireWriterLock(0);
                 Redirects.Add(rewriteRule);
-                lockRedirects.ReleaseWriterLock();
+                _lockRedirects.ReleaseWriterLock();
             }
         }
+
         internal void RemoveRewriteRuleInternal(string ruleName)
         {
-            lockRewrites.AcquireWriterLock(0);
+            _lockRewrites.AcquireWriterLock(0);
             Rewrites.RemoveByName(ruleName);
-            lockRewrites.ReleaseWriterLock();
+            _lockRewrites.ReleaseWriterLock();
 
-            lockRedirects.AcquireWriterLock(0);
+            _lockRedirects.AcquireWriterLock(0);
             Redirects.RemoveByName(ruleName);
-            lockRedirects.ReleaseWriterLock();
+            _lockRedirects.ReleaseWriterLock();
         }
 
         internal void ReplaceRewriteRuleInternal(string ruleName, RewriteRule rewriteRule)
         {
             if (rewriteRule.Redirect == RedirectOption.None)
             {
-                lockRewrites.AcquireWriterLock(0);
+                _lockRewrites.AcquireWriterLock(0);
                 Rewrites.ReplaceRuleByName(ruleName, rewriteRule);
-                lockRewrites.ReleaseWriterLock();
+                _lockRewrites.ReleaseWriterLock();
             }
             else
             {
-                lockRedirects.AcquireWriterLock(0);
+                _lockRedirects.AcquireWriterLock(0);
                 Redirects.ReplaceRuleByName(ruleName, rewriteRule);
-                lockRedirects.ReleaseWriterLock();
+                _lockRedirects.ReleaseWriterLock();
             }
         }
 
@@ -384,15 +348,15 @@ namespace UrlRewritingNet.Web
         {
             if (rewriteRule.Redirect == RedirectOption.None)
             {
-                lockRewrites.AcquireWriterLock(0);
+                _lockRewrites.AcquireWriterLock(0);
                 Rewrites.InsertRuleBeforeName(positionRuleName, ruleName, rewriteRule);
-                lockRewrites.ReleaseWriterLock();
+                _lockRewrites.ReleaseWriterLock();
             }
             else
             {
-                lockRedirects.AcquireWriterLock(0);
+                _lockRedirects.AcquireWriterLock(0);
                 Redirects.InsertRuleBeforeName(positionRuleName, ruleName, rewriteRule);
-                lockRedirects.ReleaseWriterLock();
+                _lockRedirects.ReleaseWriterLock();
             }
         }
 
@@ -400,12 +364,10 @@ namespace UrlRewritingNet.Web
         {
         }
 
-        #endregion
-
         private void OnAppPostRequestHandlerExecute(object sender, EventArgs e)
         {
-            HttpApplication app = sender as HttpApplication;
-            string cachedPath = (string)app.Context.Items[ItemsCachedPathAfterRewrite];
+            var app = sender as HttpApplication;
+            var cachedPath = (string)app.Context.Items[ItemsCachedPathAfterRewrite];
             if (!string.IsNullOrEmpty(cachedPath))
             {
                 app.Context.RewritePath(cachedPath);
@@ -414,18 +376,18 @@ namespace UrlRewritingNet.Web
 
         private void OnAppPreRequestHandlerExecute(object sender, EventArgs e)
         {
-            HttpApplication app = sender as HttpApplication;
-            System.Web.UI.Page page = app.Context.CurrentHandler as System.Web.UI.Page;
+            var app = sender as HttpApplication;
+            var page = app.Context.CurrentHandler as Page;
             if (page != null)
             {
-                page.PreInit += new EventHandler(OnPagePreInit);
+                page.PreInit += OnPagePreInit;
             }
         }
 
         private void OnPagePreInit(object sender, EventArgs e)
         {
             HttpContext context = HttpContext.Current;
-            string virtualUrl = (string)context.Items[ItemsVirtualUrl];
+            var virtualUrl = (string)context.Items[ItemsVirtualUrl];
             if (!string.IsNullOrEmpty(virtualUrl))
             {
                 int pos = virtualUrl.IndexOf('?');
@@ -434,7 +396,7 @@ namespace UrlRewritingNet.Web
                     virtualUrl = virtualUrl.Substring(0, pos);
                 }
 
-                RewriteUrlParameterOption option = (RewriteUrlParameterOption)context.Items[ItemsRewriteUrlParameter];
+                var option = (RewriteUrlParameterOption)context.Items[ItemsRewriteUrlParameter];
                 string fullQueryString = context.Request.QueryString.ToString();
                 context.Items[ItemsCachedPathAfterRewrite] = context.Request.Path + "?" + fullQueryString;
 
@@ -464,6 +426,5 @@ namespace UrlRewritingNet.Web
                 }
             }
         }
-
     }
 }

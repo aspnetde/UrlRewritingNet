@@ -1,86 +1,50 @@
-/* UrlRewritingNet.UrlRewrite
- * Version 2.0
- * 
- * This Library is Copyright 2006 by Albert Weinert and Thomas Bandt.
- * 
- * http://der-albert.com, http://blog.thomasbandt.de
- * 
- * This Library is provided as is. No warrenty is expressed or implied.
- * 
- * You can use these Library in free and commercial projects without a fee.
- * 
- * No charge should be made for providing these Library to a third party.
- * 
- * It is allowed to modify the source to fit your special needs. If you 
- * made improvements you should make it public available by sending us 
- * your modifications or publish it on your site. If you publish it on 
- * your own site you have to notify us. This is not a commitment that we 
- * include your modifications. 
- * 
- * This Copyright notice must be included in the modified source code.
- * 
- * You are not allowed to build a commercial rewrite engine based on 
- * this code.
- * 
- * Based on http://weblogs.asp.net/fmarguerie/archive/2004/11/18/265719.aspx
- * 
- * For further informations see: http://www.urlrewriting.net/
- */
-
 using System;
-using System.Collections.Generic;
-using System.Text;
 using UrlRewritingNet.Configuration;
 
 namespace UrlRewritingNet.Web
 {
     public abstract class RewriteRule
     {
-        private RedirectOption redirect = RedirectOption.None;
+        private RedirectOption _redirect = RedirectOption.None;
 
         public RedirectOption Redirect
         {
-            get { return redirect; }
-            set { redirect = value; }
+            get { return _redirect; }
+            set { _redirect = value; }
         }
 
-        private RewriteOption rewrite = RewriteOption.Application;
+        private RewriteOption _rewrite = RewriteOption.Application;
 
         public RewriteOption Rewrite
         {
-            get { return rewrite; }
-            set { rewrite = value; }
+            get { return _rewrite; }
+            set { _rewrite = value; }
 
         }
-        private string name;
 
-        public string Name
-        {
-            get { return name; }
-            internal set { name = value; }
-        }
+        public string Name { get; internal set; }
 
-        private RedirectModeOption redirectMode = RedirectModeOption.Temporary;
+        private RedirectModeOption _redirectMode = RedirectModeOption.Temporary;
 
         public RedirectModeOption RedirectMode
         {
-            get { return redirectMode; }
-            set { redirectMode = value; }
+            get { return _redirectMode; }
+            set { _redirectMode = value; }
         }
-        private RewriteUrlParameterOption rewriteUrlParameter = RewriteUrlParameterOption.ExcludeFromClientQueryString;
+        private RewriteUrlParameterOption _rewriteUrlParameter = RewriteUrlParameterOption.ExcludeFromClientQueryString;
 
         public RewriteUrlParameterOption RewriteUrlParameter
         {
-            get { return rewriteUrlParameter; }
-            set { rewriteUrlParameter = value; }
+            get { return _rewriteUrlParameter; }
+            set { _rewriteUrlParameter = value; }
         }
 
-        private bool ignoreCase = false;
+        private bool _ignoreCase;
 
         public bool IgnoreCase
         {
-            get { return ignoreCase; }
-            set { ignoreCase = value; }
+            get { return _ignoreCase; }
+            set { _ignoreCase = value; }
         }
 
         public abstract bool IsRewrite(string requestUrl);
@@ -90,12 +54,14 @@ namespace UrlRewritingNet.Web
         {
             if (rewriteSettings == null)
                 throw new ArgumentNullException("rewriteSettings");
-            this.redirect = rewriteSettings.Redirect;
-            this.rewrite = rewriteSettings.Rewrite;
-            this.redirectMode = rewriteSettings.RedirectMode;
-            this.rewriteUrlParameter = rewriteSettings.RewriteUrlParameter;
-            this.ignoreCase = rewriteSettings.IgnoreCase;
-            this.Name = rewriteSettings.Name;
+
+            _redirect = rewriteSettings.Redirect;
+            _rewrite = rewriteSettings.Rewrite;
+            _redirectMode = rewriteSettings.RedirectMode;
+            _rewriteUrlParameter = rewriteSettings.RewriteUrlParameter;
+            _ignoreCase = rewriteSettings.IgnoreCase;
+
+            Name = rewriteSettings.Name;
         }
     }
 }
