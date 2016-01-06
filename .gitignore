@@ -15,12 +15,17 @@ Thumbs.db
 *.ilk
 *.log
 *.exe
+!build/nuget.exe
 [Bb]in
 [Dd]ebug*/
 *.sbr
 obj/
 [Rr]elease*/
 _ReSharper*/
+.vs/
 
 #Ignore temporary word files
 ~*.docx
+
+#Ignore build output
+*.nupkg
