@@ -3,7 +3,7 @@
 
 Welcome to the repository of UrlRewritingNet.UrlRewrite, a component for easy and reliable rewriting URLs with ASP.NET.
 
-Based on “[ASP.NET HTTP module for URL redirections](http://weblogs.asp.net/fmarguerie/265719)” of [Fabrice Marguerie](http://weblogs.asp.net/fmarguerie) it has been improved and enhanced by [Thomas Bandt](http://blog.thomasbandt.de/) and [Albert Weinert](http://blog.der-albert.com/).
+Based on “[ASP.NET HTTP module for URL redirections](http://weblogs.asp.net/fmarguerie/265719)” of [Fabrice Marguerie](http://weblogs.asp.net/fmarguerie) it has been improved and enhanced by [Thomas Bandt](https://thomasbandt.com/) and [Albert Weinert](http://blog.der-albert.com/).
 
 # System Requirements
 
