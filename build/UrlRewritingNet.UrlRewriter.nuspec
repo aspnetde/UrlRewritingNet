@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+    <metadata>
+        <id>UrlRewritingNet.UrlRewriter</id>
+        <version>2.0.7</version>
+        <title>UrlRewritingNet.UrlRewriter</title>
+        <authors>Albert Weinert &amp; Thomas Bandt &amp; Fabrice Marguerie</authors>
+		<licenseUrl>https://github.com/aspnetde/UrlRewritingNet/blob/master/LICENSE</licenseUrl>
+        <owners>Albert Weinert &amp; Thomas Bandt</owners>
+        <projectUrl>http://www.urlrewriting.net/</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>UrlRewritingNet.UrlRewrite is an Open Source Component for easy and reliable rewriting URLs with ASP.NET</description>
+        <summary>The component was designed and developed in 2006 for running with ASP.NET 2.0, but it works with newer versions of ASP.NET as well. The only requirement is a Webserver running ASP.NET, for example Internet Information Services (IIS, Version >= 5.0).</summary>
+		<language>en-US</language>
+		<tags>UrlRewritingNet</tags>
+    </metadata>
+    <files>
+        <file src="..\src\obj\Release\UrlRewritingNet.UrlRewriter.dll" target="lib\UrlRewritingNet.UrlRewriter.dll" />
+        
+		<!-- Added to be able to produce a symbols package -->
+		<file src="..\src\obj\Release\UrlRewritingNet.UrlRewriter.pdb" target="lib" />
+		<file src="..\src\**\*.cs" target="src\" />
+    </files>
+</package>

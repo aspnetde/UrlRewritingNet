@@ -1,0 +1,39 @@
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup>
+		<MSBuildCommunityTasksPath>.\</MSBuildCommunityTasksPath>
+	</PropertyGroup>
+	
+	<Import Project=".\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />
+		
+	<Target Name="Build" DependsOnTargets="CompileProject">
+		<Message Text="Build finished" />
+	</Target>
+  
+	<Target Name="CompileProject" DependsOnTargets="SetVersionNumber">
+		<Message Text="Compiling project in $(Configuration) mode" Importance="high" />
+		<MSBuild Projects="..\src\UrlRewritingNet.UrlRewriter.sln" Properties="Configuration=$(Configuration);" Targets="Clean;Rebuild;" BuildInParallel="False" ToolsVersion="4.0" UnloadProjectsOnCompletion="False">
+		</MSBuild>
+
+		<!-- DONE -->
+		<Message Text="Finished compiling project" Importance="high" />
+	</Target>
+
+	<Target Name="SetVersionNumber" Condition="'$(BUILD_RELEASE)'!=''">
+		<PropertyGroup>
+			<NewVersion>$(BUILD_RELEASE)</NewVersion>
+			<NewVersion Condition="'$(BUILD_COMMENT)'!=''">$(BUILD_RELEASE)-$(BUILD_COMMENT)</NewVersion>
+			<NewVersion Condition="'$(BUILD_NIGHTLY)'!=''">$(BUILD_RELEASE)-$(BUILD_NIGHTLY)</NewVersion>
+			<NewVersion Condition="'$(BUILD_COMMENT)'!='' And '$(BUILD_NIGHTLY)'!=''">$(BUILD_RELEASE)-$(BUILD_COMMENT)-$(BUILD_NIGHTLY)</NewVersion>
+		</PropertyGroup>
+
+		<FileUpdate
+			Files="..\src\Properties\AssemblyInfo.cs"
+			Regex="AssemblyFileVersion\(&quot;(.+)?&quot;\)"
+			ReplacementText="AssemblyFileVersion(&quot;$(BUILD_RELEASE)&quot;)"/>
+
+		<FileUpdate
+			Files="..\src\Properties\AssemblyInfo.cs"
+			Regex="AssemblyVersion\(&quot;(.+)?&quot;\)"
+			ReplacementText="AssemblyVersion(&quot;$(BUILD_RELEASE)&quot;)"/>
+	</Target>
+</Project>  
